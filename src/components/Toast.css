@@ -3,11 +3,11 @@
   bottom: 24px;
   right: 24px;
   z-index: 1000;
-  /* Auto-fit width to the text: grows for longer copy (e.g. English),
-     stays compact for shorter copy, and never exceeds the viewport. */
+  /* Auto-fit width to the (non-wrapping) feature list, not the subtitle.
+     The subtitle is allowed to wrap, so it does not stretch the box. */
   width: max-content;
   min-width: 300px;
-  max-width: min(600px, calc(100vw - 32px));
+  max-width: min(520px, calc(100vw - 32px));
   padding: 20px 20px 18px;
   border-radius: var(--radius-lg, 16px);
   background: var(--bg-card, hsla(226, 20%, 15%, 0.92));
@@ -71,6 +71,13 @@
   padding-right: 28px;
 }
 
+/* Text column fills the header width so the subtitle wraps to the box,
+   while not contributing its (long) single-line width to the box sizing. */
+.welcome-toast__header > div {
+  flex: 1;
+  min-width: 0;
+}
+
 .welcome-toast__badge {
   flex-shrink: 0;
   display: inline-flex;
@@ -97,6 +104,10 @@
   font-size: 0.82rem;
   line-height: 1.5;
   color: var(--text-secondary, hsl(215, 20%, 75%));
+  /* Fill the column but report 0 intrinsic width, so the subtitle wraps
+     instead of forcing the toast wider. */
+  width: 0;
+  min-width: 100%;
 }
 
 .welcome-toast__list {
@@ -114,6 +125,8 @@
   gap: 9px;
   font-size: 0.8rem;
   color: var(--text-secondary, hsl(215, 20%, 75%));
+  /* Keep each feature on a single line; the box widens to fit them. */
+  white-space: nowrap;
 }
 
 .welcome-toast__list svg {
