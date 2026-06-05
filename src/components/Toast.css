@@ -3,7 +3,11 @@
   bottom: 24px;
   right: 24px;
   z-index: 1000;
-  width: min(360px, calc(100vw - 32px));
+  /* Auto-fit width to the text: grows for longer copy (e.g. English),
+     stays compact for shorter copy, and never exceeds the viewport. */
+  width: max-content;
+  min-width: 300px;
+  max-width: min(600px, calc(100vw - 32px));
   padding: 20px 20px 18px;
   border-radius: var(--radius-lg, 16px);
   background: var(--bg-card, hsla(226, 20%, 15%, 0.92));
@@ -188,6 +192,8 @@
     right: 16px;
     left: 16px;
     width: auto;
+    min-width: 0;
+    max-width: none;
   }
 
   .welcome-help-fab {
