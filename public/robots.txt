@@ -1,0 +1,24 @@
+# PDF Archive — robots.txt
+User-agent: *
+Allow: /
+
+# Generative engines / AI crawlers are welcome to index the public marketing surface.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://pdf-archive-three.vercel.app/sitemap.xml

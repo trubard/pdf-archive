@@ -15,6 +15,7 @@ import {
 import FolderTree from './components/FolderTree';
 import PDFList from './components/PDFList';
 import PDFViewer from './components/PDFViewer';
+import WelcomeToast from './components/Toast';
 
 export default function App() {
   const [folders, setFolders] = useState([]);
@@ -490,6 +491,9 @@ export default function App() {
           hasNext={hasNext}
         />
       )}
+
+      {/* First-visit welcome toast */}
+      <WelcomeToast />
     </div>
   );
 }

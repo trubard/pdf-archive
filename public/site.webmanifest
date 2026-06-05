@@ -1,0 +1,19 @@
+{
+  "name": "PDF Archive — 프라이빗 PDF 학습 저장소",
+  "short_name": "PDF Archive",
+  "description": "PDF 강의 자료를 폴더로 정리하고 브라우저에서 바로 확인하는 프라이빗 학습 저장소.",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#13161f",
+  "theme_color": "#5b3df5",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
