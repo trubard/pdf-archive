@@ -136,6 +136,52 @@
   box-shadow: 0 6px 18px var(--primary-glow, hsla(250, 80%, 62%, 0.45));
 }
 
+/* Persistent help button (FAB) */
+.welcome-help-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--border-active, hsla(250, 80%, 62%, 0.5));
+  border-radius: 50%;
+  background: var(--bg-card, hsla(226, 20%, 15%, 0.92));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  color: var(--primary-hover, hsl(250, 85%, 68%));
+  box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+  transition: var(--transition-smooth, all 0.2s ease);
+  animation: welcome-fab-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.welcome-help-fab:hover {
+  color: #fff;
+  border-color: var(--border-active, hsla(250, 80%, 62%, 0.8));
+  background: linear-gradient(135deg, var(--primary, hsl(250, 80%, 62%)), var(--accent, hsl(280, 80%, 65%)));
+  box-shadow: 0 6px 20px var(--primary-glow, hsla(250, 80%, 62%, 0.45));
+  transform: translateY(-2px);
+}
+
+.welcome-help-fab:active {
+  transform: translateY(0);
+}
+
+@keyframes welcome-fab-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (max-width: 480px) {
   .welcome-toast {
     bottom: 16px;
@@ -143,11 +189,17 @@
     left: 16px;
     width: auto;
   }
+
+  .welcome-help-fab {
+    bottom: 16px;
+    right: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .welcome-toast,
-  .welcome-toast.is-leaving {
+  .welcome-toast.is-leaving,
+  .welcome-help-fab {
     animation: none;
   }
 }
