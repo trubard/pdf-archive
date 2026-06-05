@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Download, Upload, RefreshCw, Layers, Trash2 } from 'lucide-react';
+import { Plus, Download, Upload, RefreshCw, Layers, Trash2, Languages } from 'lucide-react';
+import { useI18n } from './i18n.jsx';
 import {
   getFolders,
   saveFolder,
@@ -18,6 +19,7 @@ import PDFViewer from './components/PDFViewer';
 import WelcomeToast from './components/Toast';
 
 export default function App() {
+  const { t, toggleLang } = useI18n();
   const [folders, setFolders] = useState([]);
   const [activeFolderId, setActiveFolderId] = useState(null);
   const [pdfs, setPDFs] = useState([]);
@@ -66,7 +68,7 @@ export default function App() {
   const handleCreateFolder = async () => {
     const newFolder = {
       id: crypto.randomUUID(),
-      name: `새 폴더 ${folders.length + 1}`,
+      name: t('app.defaultFolderName', folders.length + 1),
       order: folders.length,
       createdAt: new Date()
     };
@@ -150,7 +152,7 @@ export default function App() {
       setPDFs([...pdfs, ...uploadedPDFs]);
     } catch (err) {
       console.error('Error uploading PDFs:', err);
-      alert('파일 업로드 도중 오류가 발생했습니다.');
+      alert(t('app.uploadError'));
     }
   };
 
@@ -170,7 +172,7 @@ export default function App() {
     if (!activeFolderId) return;
 
     const confirmDelete = window.confirm(
-      `정말로 이 폴더('${activeFolder?.name}') 안의 모든 PDF 강의자료(${pdfs.length}개)를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`
+      t('app.confirmEmptyFolder', activeFolder?.name, pdfs.length)
     );
 
     if (!confirmDelete) return;
@@ -183,7 +185,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error deleting all PDFs in folder:', err);
-      alert('파일 일괄 삭제 중 오류가 발생했습니다.');
+      alert(t('app.bulkDeleteError'));
     }
   };
 
@@ -222,7 +224,7 @@ export default function App() {
       console.log(`Moved PDF ${pdfToMove.name} to folder ${targetFolderId}`);
     } catch (err) {
       console.error('Failed to move PDF:', err);
-      alert('파일을 이동하는 도중 오류가 발생했습니다.');
+      alert(t('app.moveError'));
     }
   };
 
@@ -272,7 +274,7 @@ export default function App() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Export backup failed:', err);
-      alert('백업 파일 생성 중 오류가 발생했습니다. 파일 크기가 너무 클 수 있습니다.');
+      alert(t('app.exportError'));
     } finally {
       setIsExporting(false);
     }
@@ -335,10 +337,10 @@ export default function App() {
             setActiveFolderId(null);
           }
 
-          alert('백업 데이터 복원이 완료되었습니다!');
+          alert(t('app.importSuccess'));
         } catch (err) {
           console.error('Parsing backup failed:', err);
-          alert('데이터 복원 중 오류가 발생했습니다. 백업 파일이 손상되었거나 형식이 맞지 않습니다.');
+          alert(t('app.importError'));
         } finally {
           setIsImporting(false);
           e.target.value = null; // Clear input
@@ -382,7 +384,7 @@ export default function App() {
           <button
             className="new-folder-btn"
             onClick={handleCreateFolder}
-            title="새 폴더 만들기"
+            title={t('app.newFolder')}
           >
             <Plus size={18} />
           </button>
@@ -392,7 +394,7 @@ export default function App() {
           {isLoading ? (
             <div className="empty-state" style={{ padding: '32px 0' }}>
               <RefreshCw className="empty-state-icon" style={{ animation: 'spin 2s linear infinite' }} />
-              <p>로딩 중...</p>
+              <p>{t('app.loading')}</p>
             </div>
           ) : (
             <FolderTree
@@ -416,12 +418,12 @@ export default function App() {
             style={{ width: '100%', justifyContent: 'center' }}
           >
             <Download size={16} />
-            {isExporting ? '백업 내보내는 중...' : '데이터 백업 내보내기'}
+            {isExporting ? t('app.exporting') : t('app.exportBackup')}
           </button>
 
           <label className="btn-secondary" style={{ width: '100%', justifyContent: 'center', cursor: 'pointer', textAlign: 'center' }}>
             <Upload size={16} />
-            {isImporting ? '데이터 복원 중...' : '백업 가져오기'}
+            {isImporting ? t('app.importing') : t('app.importBackup')}
             <input
               type="file"
               accept=".json"
@@ -430,6 +432,16 @@ export default function App() {
               disabled={isImporting}
             />
           </label>
+
+          <button
+            className="btn-secondary"
+            onClick={toggleLang}
+            style={{ width: '100%', justifyContent: 'center' }}
+            title={t('lang.switchTo')}
+          >
+            <Languages size={16} />
+            {t('lang.switchTo')}
+          </button>
         </div>
       </aside>
 
@@ -438,11 +450,11 @@ export default function App() {
         <header className="main-header">
           <div className="header-title-section">
             <h2 className="header-title">
-              {activeFolder ? activeFolder.name : '폴더를 선택하세요'}
+              {activeFolder ? activeFolder.name : t('app.selectFolder')}
             </h2>
             {activeFolder && (
               <span className="header-meta">
-                강의자료 {pdfs.length}개
+                {t('app.materialCount', pdfs.length)}
               </span>
             )}
           </div>
@@ -460,10 +472,10 @@ export default function App() {
                 padding: '6px 12px',
                 cursor: 'pointer'
               }}
-              title="이 폴더의 모든 파일 삭제"
+              title={t('app.emptyFolderTitle')}
             >
               <Trash2 size={14} />
-              폴더 비우기
+              {t('app.emptyFolder')}
             </button>
           )}
         </header>

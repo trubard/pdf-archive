@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Folder, FolderOpen, Edit2, Trash2, Check, X, Plus } from 'lucide-react';
+import { useI18n } from '../i18n.jsx';
 
 export default function FolderTree({
   folders,
@@ -11,6 +12,7 @@ export default function FolderTree({
   onMovePDF,
   onReorderFolders
 }) {
+  const { t } = useI18n();
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [draggedFolderId, setDraggedFolderId] = useState(null);
@@ -141,14 +143,14 @@ export default function FolderTree({
                     <button
                       className="folder-action-btn"
                       onClick={(e) => handleSaveEdit(folder.id, e)}
-                      title="저장"
+                      title={t('folder.save')}
                     >
                       <Check size={14} style={{ color: 'var(--success)' }} />
                     </button>
                     <button
                       className="folder-action-btn"
                       onClick={handleCancelEdit}
-                      title="취소"
+                      title={t('folder.cancel')}
                     >
                       <X size={14} style={{ color: 'var(--danger)' }} />
                     </button>
@@ -158,7 +160,7 @@ export default function FolderTree({
                     <button
                       className="folder-action-btn"
                       onClick={(e) => handleStartEdit(folder, e)}
-                      title="이름 변경"
+                      title={t('folder.rename')}
                     >
                       <Edit2 size={14} />
                     </button>
@@ -166,11 +168,11 @@ export default function FolderTree({
                       className="folder-action-btn delete"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(`'${folder.name}' 폴더와 폴더 내부의 모든 PDF를 삭제하시겠습니까?`)) {
+                        if (confirm(t('folder.confirmDelete', folder.name))) {
                           onDeleteFolder(folder.id);
                         }
                       }}
-                      title="삭제"
+                      title={t('folder.delete')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -183,13 +185,13 @@ export default function FolderTree({
 
         {folders.length === 0 && (
           <div className="empty-state" style={{ padding: '24px 12px' }}>
-            <span style={{ fontSize: '0.85rem' }}>생성된 폴더가 없습니다.</span>
+            <span style={{ fontSize: '0.85rem' }}>{t('folder.empty')}</span>
             <button
               className="btn-primary"
               style={{ padding: '6px 12px', fontSize: '0.8rem', marginTop: '8px' }}
               onClick={onCreateFolder}
             >
-              <Plus size={14} /> 폴더 생성
+              <Plus size={14} /> {t('folder.create')}
             </button>
           </div>
         )}

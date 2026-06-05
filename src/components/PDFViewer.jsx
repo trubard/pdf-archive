@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Download, FileText, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { useI18n } from '../i18n.jsx';
 
 export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNext }) {
+  const { t } = useI18n();
   const [pdfUrl, setPdfUrl] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,7 +31,7 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
       setIsLoading(false);
     } catch (err) {
       console.error('Failed to create PDF URL:', err);
-      alert('PDF 강의자료를 처리하는 중 오류가 발생했습니다.');
+      alert(t('viewer.processError'));
       setIsLoading(false);
     }
 
@@ -38,7 +40,7 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
         URL.revokeObjectURL(activeUrl);
       }
     };
-  }, [pdf]);
+  }, [pdf, t]);
 
   // Fullscreen event listener to sync state with browser native events (e.g. Esc key)
   useEffect(() => {
@@ -88,7 +90,7 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
               onClick={onPrev}
               disabled={!hasPrev}
               style={{ padding: '6px', opacity: hasPrev ? 1 : 0.4, cursor: hasPrev ? 'pointer' : 'not-allowed' }}
-              title="이전 파일"
+              title={t('viewer.prev')}
             >
               <ChevronLeft size={18} />
             </button>
@@ -97,7 +99,7 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
               onClick={onNext}
               disabled={!hasNext}
               style={{ padding: '6px', opacity: hasNext ? 1 : 0.4, cursor: hasNext ? 'pointer' : 'not-allowed' }}
-              title="다음 파일"
+              title={t('viewer.next')}
             >
               <ChevronRight size={18} />
             </button>
@@ -108,7 +110,7 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
             className="btn-secondary"
             onClick={toggleFullscreen}
             style={{ padding: '6px' }}
-            title={isFullscreen ? "전체화면 축소" : "전체화면 확대"}
+            title={isFullscreen ? t('viewer.fullscreenOff') : t('viewer.fullscreenOn')}
           >
             {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
@@ -128,16 +130,16 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
               URL.revokeObjectURL(url);
             }}
             style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-            title="파일 다운로드"
+            title={t('viewer.downloadTitle')}
           >
-            <Download size={14} /> 다운로드
+            <Download size={14} /> {t('viewer.download')}
           </button>
 
           {/* Close Control */}
           <button
             className="viewer-close-btn"
             onClick={onClose}
-            title="뷰어 닫기"
+            title={t('viewer.close')}
           >
             <X size={18} />
           </button>
@@ -147,7 +149,7 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
       <div className="viewer-body">
         {isLoading ? (
           <div className="empty-state">
-            <p>PDF 문서를 로드하는 중...</p>
+            <p>{t('viewer.loading')}</p>
           </div>
         ) : iframeSrc ? (
           <iframe
@@ -157,11 +159,11 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
             className="viewer-iframe"
             frameBorder="0"
           >
-            이 브라우저는 PDF 표시를 지원하지 않습니다. 아래 다운로드 단추를 눌러 파일로 열어주세요.
+            {t('viewer.unsupported')}
           </iframe>
         ) : (
           <div className="empty-state">
-            <p>PDF 문서를 해석하지 못했습니다.</p>
+            <p>{t('viewer.parseFailed')}</p>
           </div>
         )}
       </div>

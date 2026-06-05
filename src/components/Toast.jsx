@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sparkles, X, FolderTree, MousePointerClick, ShieldCheck, HelpCircle } from 'lucide-react';
+import { useI18n } from '../i18n.jsx';
 import './Toast.css';
 
 const STORAGE_KEY = 'pdf-archive-welcomed';
 const AUTO_DISMISS_MS = 12000;
 
 export default function WelcomeToast() {
+  const { t } = useI18n();
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
@@ -54,8 +56,8 @@ export default function WelcomeToast() {
         <button
           className="welcome-help-fab"
           onClick={handleOpen}
-          aria-label="서비스 안내 다시 보기"
-          title="서비스 안내 다시 보기"
+          aria-label={t('toast.reopen')}
+          title={t('toast.reopen')}
         >
           <HelpCircle size={22} />
         </button>
@@ -67,7 +69,7 @@ export default function WelcomeToast() {
           role="status"
           aria-live="polite"
         >
-          <button className="welcome-toast__close" onClick={handleClose} aria-label="안내 닫기">
+          <button className="welcome-toast__close" onClick={handleClose} aria-label={t('toast.close')}>
             <X size={16} />
           </button>
 
@@ -76,30 +78,28 @@ export default function WelcomeToast() {
               <Sparkles size={16} />
             </span>
             <div>
-              <strong className="welcome-toast__title">PDF Archive에 오신 걸 환영합니다</strong>
-              <p className="welcome-toast__subtitle">
-                강의·학습용 PDF를 폴더로 정리하고 브라우저에서 바로 보는 프라이빗 저장소예요.
-              </p>
+              <strong className="welcome-toast__title">{t('toast.title')}</strong>
+              <p className="welcome-toast__subtitle">{t('toast.subtitle')}</p>
             </div>
           </div>
 
           <ul className="welcome-toast__list">
             <li>
               <FolderTree size={15} />
-              <span>폴더로 강의 자료를 깔끔하게 분류</span>
+              <span>{t('toast.feature1')}</span>
             </li>
             <li>
               <MousePointerClick size={15} />
-              <span>드래그 앤 드롭으로 순서 정렬 · 즉시 뷰어 열람</span>
+              <span>{t('toast.feature2')}</span>
             </li>
             <li>
               <ShieldCheck size={15} />
-              <span>모든 파일은 서버 없이 내 기기에만 저장</span>
+              <span>{t('toast.feature3')}</span>
             </li>
           </ul>
 
           <button className="welcome-toast__cta" onClick={handleClose}>
-            시작하기
+            {t('toast.cta')}
           </button>
         </div>
       )}

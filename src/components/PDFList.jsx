@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { FileText, Upload, Trash2, Eye, FileWarning } from 'lucide-react';
+import { useI18n } from '../i18n.jsx';
 
 export default function PDFList({
   pdfs,
@@ -9,6 +10,7 @@ export default function PDFList({
   onViewPDF,
   onReorderPDFs
 }) {
+  const { t } = useI18n();
   const [isDragActive, setIsDragActive] = useState(false);
   const [draggedPdfId, setDraggedPdfId] = useState(null);
   const [dragOverPdfId, setDragOverPdfId] = useState(null);
@@ -61,7 +63,7 @@ export default function PDFList({
       if (files.length > 0) {
         onUploadPDFs(files);
       } else {
-        alert('PDF 파일만 업로드할 수 있습니다.');
+        alert(t('pdf.onlyPdf'));
       }
     }
   };
@@ -124,8 +126,8 @@ export default function PDFList({
     return (
       <div className="empty-state">
         <FileWarning className="empty-state-icon" />
-        <h2 className="empty-state-title">선택된 폴더가 없습니다</h2>
-        <p>왼쪽 사이드바에서 폴더를 선택하거나 새로 생성해 주세요.</p>
+        <h2 className="empty-state-title">{t('pdf.noFolderSelected')}</h2>
+        <p>{t('pdf.noFolderHint')}</p>
       </div>
     );
   }
@@ -150,10 +152,8 @@ export default function PDFList({
           onChange={handleFileChange}
         />
         <Upload className="upload-icon" />
-        <div className="upload-title">강의자료 PDF 파일 업로드</div>
-        <div className="upload-desc">
-          여기로 드래그 앤 드롭하거나 클릭하여 파일을 선택하세요. (PDF만 가능)
-        </div>
+        <div className="upload-title">{t('pdf.uploadTitle')}</div>
+        <div className="upload-desc">{t('pdf.uploadDesc')}</div>
       </div>
 
       {/* PDF List Grid */}
@@ -189,11 +189,11 @@ export default function PDFList({
                   <button
                     className="pdf-btn delete"
                     onClick={() => {
-                      if (confirm(`'${pdf.name}' 파일을 삭제하시겠습니까?`)) {
+                      if (confirm(t('pdf.confirmDelete', pdf.name))) {
                         onDeletePDF(pdf.id);
                       }
                     }}
-                    title="삭제"
+                    title={t('pdf.delete')}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -201,7 +201,7 @@ export default function PDFList({
                     className="pdf-btn view"
                     onClick={() => onViewPDF(pdf)}
                   >
-                    <Eye size={14} /> 보기
+                    <Eye size={14} /> {t('pdf.view')}
                   </button>
                 </div>
               </div>
@@ -211,8 +211,8 @@ export default function PDFList({
       ) : (
         <div className="empty-state" style={{ border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)' }}>
           <FileText className="empty-state-icon" />
-          <h3 className="empty-state-title">이 폴더는 비어있습니다</h3>
-          <p>상단의 업로드 영역을 이용해 PDF 강의 자료를 추가해 보세요.</p>
+          <h3 className="empty-state-title">{t('pdf.folderEmpty')}</h3>
+          <p>{t('pdf.folderEmptyHint')}</p>
         </div>
       )}
     </div>
