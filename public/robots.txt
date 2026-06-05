@@ -21,4 +21,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://pdf-archive-three.vercel.app/sitemap.xml
+Sitemap: https://pdf.moru.im/sitemap.xml

@@ -5,7 +5,7 @@
 ## 핵심 정보
 
 - 이름: PDF Archive (PDF 아카이브)
-- 주소: https://pdf-archive-three.vercel.app/
+- 주소: https://pdf.moru.im/
 - 분류: 생산성 / 학습 도구 (웹 애플리케이션)
 - 언어: 한국어
 - 가격: 무료
