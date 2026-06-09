@@ -11,7 +11,8 @@ import {
   deletePDF,
   savePDFs,
   getAllPDFs,
-  deletePDFsInFolder
+  deletePDFsInFolder,
+  seedSampleData
 } from './utils/db';
 import FolderTree from './components/FolderTree';
 import PDFList from './components/PDFList';
@@ -34,7 +35,20 @@ export default function App() {
     async function loadInitialData() {
       try {
         setIsLoading(true);
-        const folderList = await getFolders();
+        let folderList = await getFolders();
+
+        // First-time visitor with an empty archive → seed a sample folder + PDF
+        // so the app isn't blank. Runs once (guarded by a localStorage flag).
+        if (folderList.length === 0 && localStorage.getItem('pdf-archive-seeded') !== '1') {
+          try {
+            await seedSampleData();
+            localStorage.setItem('pdf-archive-seeded', '1');
+            folderList = await getFolders();
+          } catch (seedErr) {
+            console.error('Failed to seed sample data:', seedErr);
+          }
+        }
+
         setFolders(folderList);
         if (folderList.length > 0) {
           setActiveFolderId(folderList[0].id);

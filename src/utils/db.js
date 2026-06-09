@@ -214,3 +214,33 @@ export async function deletePDFsInFolder(folderId) {
     transaction.onerror = () => reject(transaction.error);
   });
 }
+
+// Seed a sample folder + PDF so first-time visitors have something to explore.
+// Fetches the bundled sample first; if that fails, nothing is created (so it can retry).
+const SAMPLE_FOLDER_NAME = '모두를 위한 주식투자 핵심요약';
+const SAMPLE_PDF_NAME = '모두를 위한 주식투자 핵심요약.pdf';
+const SAMPLE_PDF_URL = '/samples/stock-investing-essentials.pdf';
+
+export async function seedSampleData() {
+  const res = await fetch(SAMPLE_PDF_URL);
+  if (!res.ok) throw new Error(`Failed to fetch sample PDF (${res.status})`);
+  const fileData = await res.arrayBuffer();
+
+  const folderId = crypto.randomUUID();
+  await saveFolder({
+    id: folderId,
+    name: SAMPLE_FOLDER_NAME,
+    order: 0,
+    createdAt: new Date()
+  });
+  await savePDF({
+    id: crypto.randomUUID(),
+    name: SAMPLE_PDF_NAME,
+    folderId,
+    fileData,
+    order: 0,
+    addedAt: new Date()
+  });
+
+  return folderId;
+}
