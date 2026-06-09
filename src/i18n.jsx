@@ -64,6 +64,14 @@ const translations = {
     'viewer.unsupported': '이 브라우저는 PDF 표시를 지원하지 않습니다. 아래 다운로드 단추를 눌러 파일로 열어주세요.',
     'viewer.parseFailed': 'PDF 문서를 해석하지 못했습니다.',
     'viewer.processError': 'PDF 강의자료를 처리하는 중 오류가 발생했습니다.',
+    'viewer.searchPlaceholder': '이 문서에서 검색',
+    'viewer.searching': '문서 텍스트 분석 중…',
+    'viewer.noMatches': '검색 결과가 없습니다',
+    'viewer.searchError': '문서 텍스트를 읽을 수 없습니다 (스캔 이미지 PDF일 수 있어요).',
+    'viewer.prevMatch': '이전 결과',
+    'viewer.nextMatch': '다음 결과',
+    'viewer.clearSearch': '검색 지우기',
+    'viewer.page': (n) => `${n}쪽`,
 
     // Welcome toast
     'toast.reopen': '서비스 안내 다시 보기',
@@ -133,6 +141,14 @@ const translations = {
     'viewer.unsupported': 'This browser cannot display PDFs. Click the download button below to open the file.',
     'viewer.parseFailed': 'Could not render the PDF document.',
     'viewer.processError': 'An error occurred while processing the PDF file.',
+    'viewer.searchPlaceholder': 'Search in this document',
+    'viewer.searching': 'Analyzing document text…',
+    'viewer.noMatches': 'No matches found',
+    'viewer.searchError': 'Could not read the document text (it may be a scanned image PDF).',
+    'viewer.prevMatch': 'Previous match',
+    'viewer.nextMatch': 'Next match',
+    'viewer.clearSearch': 'Clear search',
+    'viewer.page': (n) => `p.${n}`,
 
     // Welcome toast
     'toast.reopen': 'Show the intro again',
