@@ -24,6 +24,7 @@ export default function App() {
   const [activeFolderId, setActiveFolderId] = useState(null);
   const [pdfs, setPDFs] = useState([]);
   const [selectedPDF, setSelectedPDF] = useState(null);
+  const [viewerInitialPage, setViewerInitialPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -362,14 +363,28 @@ export default function App() {
 
   const handlePrevPDF = () => {
     if (hasPrev) {
+      setViewerInitialPage(1);
       setSelectedPDF(pdfs[currentPdfIndex - 1]);
     }
   };
 
   const handleNextPDF = () => {
     if (hasNext) {
+      setViewerInitialPage(1);
       setSelectedPDF(pdfs[currentPdfIndex + 1]);
     }
+  };
+
+  // Open a PDF from the file list (always at the first page)
+  const handleViewPDF = (pdf) => {
+    setViewerInitialPage(1);
+    setSelectedPDF(pdf);
+  };
+
+  // Open a PDF from a search result, jumping to the matched page
+  const handleOpenSearchResult = (pdf, page) => {
+    setViewerInitialPage(page || 1);
+    setSelectedPDF(pdf);
   };
 
   return (
@@ -486,7 +501,7 @@ export default function App() {
             activeFolder={activeFolder}
             onUploadPDFs={handleUploadPDFs}
             onDeletePDF={handleDeletePDF}
-            onViewPDF={setSelectedPDF}
+            onViewPDF={handleViewPDF}
             onReorderPDFs={handleReorderPDFs}
           />
         </section>
@@ -501,6 +516,9 @@ export default function App() {
           onNext={handleNextPDF}
           hasPrev={hasPrev}
           hasNext={hasNext}
+          folderPdfs={pdfs}
+          onOpenResult={handleOpenSearchResult}
+          initialPage={viewerInitialPage}
         />
       )}
 

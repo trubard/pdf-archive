@@ -72,6 +72,11 @@ const translations = {
     'viewer.nextMatch': '다음 결과',
     'viewer.clearSearch': '검색 지우기',
     'viewer.page': (n) => `${n}쪽`,
+    'viewer.searchProgress': (done, total) => `분석 중… (${done}/${total})`,
+    'search.scopeFile': '현재 파일',
+    'search.scopeFolder': '현재 폴더',
+    'search.scopeAll': '전체 폴더',
+    'search.scopeLabel': '검색 범위',
 
     // Welcome toast
     'toast.reopen': '서비스 안내 다시 보기',
@@ -149,6 +154,11 @@ const translations = {
     'viewer.nextMatch': 'Next match',
     'viewer.clearSearch': 'Clear search',
     'viewer.page': (n) => `p.${n}`,
+    'viewer.searchProgress': (done, total) => `Analyzing… (${done}/${total})`,
+    'search.scopeFile': 'This file',
+    'search.scopeFolder': 'This folder',
+    'search.scopeAll': 'All folders',
+    'search.scopeLabel': 'Search scope',
 
     // Welcome toast
     'toast.reopen': 'Show the intro again',

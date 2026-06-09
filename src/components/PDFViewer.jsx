@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { X, Download, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Search, Loader2 } from 'lucide-react';
 import { useI18n } from '../i18n.jsx';
+import { getAllPDFs } from '../utils/db';
 
 const PDFJS_VERSION = '3.11.174';
 const WORKER_SRC = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
@@ -46,32 +47,63 @@ async function extractPageTexts(pdf) {
   return pages;
 }
 
-// Find all (case-insensitive) occurrences with a surrounding snippet.
-function buildMatches(pageTexts, rawQuery) {
+// Search a list of PDFs (case-insensitive), returning matches with file + page + snippet.
+async function searchPdfs(pdfList, rawQuery, onProgress) {
   const needle = rawQuery.toLowerCase();
-  const out = [];
-  for (const { page, text } of pageTexts) {
-    const hay = text.toLowerCase();
-    let from = 0;
-    while (from <= hay.length) {
-      const idx = hay.indexOf(needle, from);
-      if (idx === -1) break;
-      const start = Math.max(0, idx - 40);
-      const end = Math.min(text.length, idx + needle.length + 40);
-      out.push({
-        page,
-        before: (start > 0 ? '…' : '') + text.slice(start, idx),
-        match: text.slice(idx, idx + needle.length),
-        after: text.slice(idx + needle.length, end) + (end < text.length ? '…' : ''),
-      });
-      if (out.length >= MAX_MATCHES) return out;
-      from = idx + needle.length;
+  const matches = [];
+  let processed = 0;
+  let anySuccess = false;
+
+  for (const pdf of pdfList) {
+    try {
+      const pages = await extractPageTexts(pdf);
+      anySuccess = true;
+      for (const { page, text } of pages) {
+        const hay = text.toLowerCase();
+        let from = 0;
+        while (from <= hay.length) {
+          const idx = hay.indexOf(needle, from);
+          if (idx === -1) break;
+          const start = Math.max(0, idx - 40);
+          const end = Math.min(text.length, idx + needle.length + 40);
+          matches.push({
+            pdfId: pdf.id,
+            pdfName: pdf.name,
+            pdfRef: pdf,
+            page,
+            before: (start > 0 ? '…' : '') + text.slice(start, idx),
+            match: text.slice(idx, idx + needle.length),
+            after: text.slice(idx + needle.length, end) + (end < text.length ? '…' : ''),
+          });
+          if (matches.length >= MAX_MATCHES) {
+            onProgress?.(pdfList.length, pdfList.length);
+            return { matches, anySuccess, capped: true };
+          }
+          from = idx + needle.length;
+        }
+      }
+    } catch (err) {
+      console.warn('Search skipped a PDF:', pdf?.name, err);
+    } finally {
+      processed += 1;
+      onProgress?.(processed, pdfList.length);
     }
   }
-  return out;
+
+  return { matches, anySuccess, capped: false };
 }
 
-export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNext }) {
+export default function PDFViewer({
+  pdf,
+  onClose,
+  onPrev,
+  onNext,
+  hasPrev,
+  hasNext,
+  folderPdfs = [],
+  onOpenResult,
+  initialPage = 1,
+}) {
   const { t } = useI18n();
   const [pdfUrl, setPdfUrl] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -80,11 +112,19 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
 
   // Search state
   const [query, setQuery] = useState('');
+  const [scope, setScope] = useState('file'); // 'file' | 'folder' | 'all'
   const [matches, setMatches] = useState([]);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [searchFailed, setSearchFailed] = useState(false);
-  const [targetPage, setTargetPage] = useState(1);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [targetPage, setTargetPage] = useState(initialPage);
+
+  // Keep the latest target page available to the (non-dependent) search effect.
+  const targetPageRef = useRef(initialPage);
+  useEffect(() => {
+    targetPageRef.current = targetPage;
+  }, [targetPage]);
 
   // Generate object URL from ArrayBuffer to get high-performance native rendering
   useEffect(() => {
@@ -119,51 +159,62 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
     };
   }, [pdf, t]);
 
-  // Reset search whenever the open document changes
+  // When the open document changes, jump to the requested page (1 for normal opens,
+  // the result's page when opened from a cross-file search hit). The query is kept
+  // so global search results stay usable while navigating between files.
   useEffect(() => {
-    setQuery('');
-    setMatches([]);
-    setActiveIndex(-1);
-    setSearchFailed(false);
-    setIsExtracting(false);
-    setTargetPage(1);
+    setTargetPage(initialPage || 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdf]);
 
-  // Run the (debounced) in-document search
+  // Run the (debounced) search across the selected scope
   useEffect(() => {
     const q = query.trim();
     if (!q) {
       setMatches([]);
       setActiveIndex(-1);
       setSearchFailed(false);
-      setIsExtracting(false);
+      setIsSearching(false);
+      setProgress({ done: 0, total: 0 });
       return;
     }
 
     let cancelled = false;
-    setIsExtracting(true);
+    setIsSearching(true);
     setSearchFailed(false);
+    setProgress({ done: 0, total: 0 });
 
     const timer = setTimeout(async () => {
       try {
-        const pages = await extractPageTexts(pdf);
-        if (cancelled) return;
-        const found = buildMatches(pages, q);
-        setMatches(found);
-        setIsExtracting(false);
-        if (found.length > 0) {
-          setActiveIndex(0);
-          setTargetPage(found[0].page);
+        let list;
+        if (scope === 'file') {
+          list = [pdf];
+        } else if (scope === 'folder') {
+          list = folderPdfs && folderPdfs.length ? folderPdfs : [pdf];
         } else {
-          setActiveIndex(-1);
+          list = await getAllPDFs();
         }
+        if (cancelled) return;
+
+        const { matches: found, anySuccess } = await searchPdfs(list, q, (done, total) => {
+          if (!cancelled) setProgress({ done, total });
+        });
+        if (cancelled) return;
+
+        setMatches(found);
+        setIsSearching(false);
+        setSearchFailed(found.length === 0 && !anySuccess);
+
+        // Highlight the hit on the page we're currently viewing, if any.
+        const tp = targetPageRef.current;
+        setActiveIndex(found.findIndex((m) => m.pdfId === pdf.id && m.page === tp));
       } catch (err) {
         if (cancelled) return;
         console.error('PDF search failed:', err);
         setSearchFailed(true);
         setMatches([]);
         setActiveIndex(-1);
-        setIsExtracting(false);
+        setIsSearching(false);
       }
     }, 300);
 
@@ -171,16 +222,21 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, pdf]);
+  }, [query, scope, pdf, folderPdfs]);
 
   const goToMatch = useCallback(
     (index) => {
       if (matches.length === 0) return;
       const next = (index + matches.length) % matches.length; // wrap around
+      const m = matches[next];
       setActiveIndex(next);
-      setTargetPage(matches[next].page);
+      if (m.pdfId === pdf.id) {
+        setTargetPage(m.page);
+      } else if (onOpenResult) {
+        onOpenResult(m.pdfRef, m.page);
+      }
     },
-    [matches]
+    [matches, pdf, onOpenResult]
   );
 
   // Fullscreen event listener to sync state with browser native events (e.g. Esc key)
@@ -209,22 +265,112 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
 
   if (!pdf) return null;
 
-  // Open at the active match's page; native viewer honours the #page parameter.
+  // Open at the active match's page; the native viewer honours #page only on a fresh
+  // load, so targetPage is part of the iframe key to force a remount on each jump.
   const iframeSrc = pdfUrl ? `${pdfUrl}#page=${targetPage}&view=Fit` : '';
   const hasMatches = matches.length > 0;
+  const showFileName = scope !== 'file';
 
   return (
     <div ref={containerRef} id="pdf-viewer-container" className="viewer-overlay">
       <div className="viewer-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+        <div className="viewer-header-left">
           <FileText size={20} style={{ color: 'var(--danger)', flexShrink: 0 }} />
           <h2 className="viewer-title" title={pdf.name}>
             {pdf.name}
           </h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* In-document / archive search — sits in the free space next to the title */}
+        <div className="viewer-search">
+          <select
+            className="viewer-search-scope"
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            title={t('search.scopeLabel')}
+            aria-label={t('search.scopeLabel')}
+          >
+            <option value="file">{t('search.scopeFile')}</option>
+            <option value="folder">{t('search.scopeFolder')}</option>
+            <option value="all">{t('search.scopeAll')}</option>
+          </select>
 
+          <div className="viewer-search-field">
+            <Search size={16} className="viewer-search-icon" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  goToMatch(activeIndex + (e.shiftKey ? -1 : 1));
+                } else if (e.key === 'Escape') {
+                  setQuery('');
+                }
+              }}
+              placeholder={t('viewer.searchPlaceholder')}
+              aria-label={t('viewer.searchPlaceholder')}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="viewer-search-clear"
+                title={t('viewer.clearSearch')}
+                aria-label={t('viewer.clearSearch')}
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+
+          {/* Status / match navigation */}
+          {isSearching ? (
+            <span className="viewer-search-status" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              {progress.total > 1 ? t('viewer.searchProgress', progress.done, progress.total) : t('viewer.searching')}
+            </span>
+          ) : searchFailed ? (
+            <span className="viewer-search-status">{t('viewer.searchError')}</span>
+          ) : query.trim() && !hasMatches ? (
+            <span className="viewer-search-status">{t('viewer.noMatches')}</span>
+          ) : hasMatches ? (
+            <div className="viewer-search-nav">
+              <span className="viewer-search-status" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {activeIndex >= 0 ? activeIndex + 1 : '–'} / {matches.length}{matches.length >= MAX_MATCHES ? '+' : ''}
+              </span>
+              <button className="btn-secondary" onClick={() => goToMatch(activeIndex - 1)} style={{ padding: '4px' }} title={t('viewer.prevMatch')}>
+                <ChevronUp size={16} />
+              </button>
+              <button className="btn-secondary" onClick={() => goToMatch(activeIndex + 1)} style={{ padding: '4px' }} title={t('viewer.nextMatch')}>
+                <ChevronDown size={16} />
+              </button>
+            </div>
+          ) : null}
+
+          {/* Results dropdown */}
+          {hasMatches && (
+            <div className="viewer-search-results">
+              {matches.map((m, i) => (
+                <button
+                  key={`${m.pdfId}-${m.page}-${i}`}
+                  className={`viewer-search-result ${i === activeIndex ? 'active' : ''}`}
+                  onClick={() => goToMatch(i)}
+                >
+                  <span className="result-page">{t('viewer.page', m.page)}</span>
+                  <span className="result-snippet">
+                    {showFileName && <span className="result-file">{m.pdfName}</span>}
+                    {m.before}
+                    <mark>{m.match}</mark>
+                    {m.after}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="viewer-header-right">
           {/* File Navigation Controls (Prev/Next PDF File) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '8px', borderRight: '1px solid var(--border)', paddingRight: '12px' }}>
             <button
@@ -278,100 +424,10 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
           </button>
 
           {/* Close Control */}
-          <button
-            className="viewer-close-btn"
-            onClick={onClose}
-            title={t('viewer.close')}
-          >
+          <button className="viewer-close-btn" onClick={onClose} title={t('viewer.close')}>
             <X size={18} />
           </button>
         </div>
-      </div>
-
-      {/* In-document full-text search */}
-      <div className="viewer-search">
-        <div className="viewer-search-field">
-          <Search size={16} className="viewer-search-icon" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                goToMatch(activeIndex + (e.shiftKey ? -1 : 1));
-              } else if (e.key === 'Escape') {
-                setQuery('');
-              }
-            }}
-            placeholder={t('viewer.searchPlaceholder')}
-            aria-label={t('viewer.searchPlaceholder')}
-          />
-          {query && (
-            <button
-              className="btn-secondary"
-              onClick={() => setQuery('')}
-              style={{ padding: '2px', border: 'none', background: 'transparent' }}
-              title={t('viewer.clearSearch')}
-            >
-              <X size={15} />
-            </button>
-          )}
-        </div>
-
-        {/* Status / match navigation */}
-        {isExtracting ? (
-          <span className="viewer-search-status" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            {t('viewer.searching')}
-          </span>
-        ) : searchFailed ? (
-          <span className="viewer-search-status">{t('viewer.searchError')}</span>
-        ) : query.trim() && !hasMatches ? (
-          <span className="viewer-search-status">{t('viewer.noMatches')}</span>
-        ) : hasMatches ? (
-          <div className="viewer-search-nav">
-            <span className="viewer-search-status" style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {activeIndex + 1} / {matches.length}{matches.length >= MAX_MATCHES ? '+' : ''}
-            </span>
-            <button
-              className="btn-secondary"
-              onClick={() => goToMatch(activeIndex - 1)}
-              style={{ padding: '4px' }}
-              title={t('viewer.prevMatch')}
-            >
-              <ChevronUp size={16} />
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => goToMatch(activeIndex + 1)}
-              style={{ padding: '4px' }}
-              title={t('viewer.nextMatch')}
-            >
-              <ChevronDown size={16} />
-            </button>
-          </div>
-        ) : null}
-
-        {/* Results dropdown */}
-        {hasMatches && (
-          <div className="viewer-search-results">
-            {matches.map((m, i) => (
-              <button
-                key={`${m.page}-${i}`}
-                className={`viewer-search-result ${i === activeIndex ? 'active' : ''}`}
-                onClick={() => goToMatch(i)}
-              >
-                <span className="result-page">{t('viewer.page', m.page)}</span>
-                <span className="result-snippet">
-                  {m.before}
-                  <mark>{m.match}</mark>
-                  {m.after}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="viewer-body">
@@ -381,7 +437,7 @@ export default function PDFViewer({ pdf, onClose, onPrev, onNext, hasPrev, hasNe
           </div>
         ) : iframeSrc ? (
           <iframe
-            key={pdf.id} // Revert to only remounting when changing the PDF document, avoiding flash
+            key={`${pdf.id}::${targetPage}`} // remount on page jump so the native viewer honours #page
             src={iframeSrc}
             title={pdf.name}
             className="viewer-iframe"
